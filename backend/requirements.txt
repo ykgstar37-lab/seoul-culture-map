@@ -3,3 +3,6 @@ uvicorn[standard]
 sqlalchemy
 pydantic-settings
 pandas
+openai
+httpx
+scikit-learn
