@@ -1,6 +1,16 @@
 # Seoul Culture Map
 
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+
 > **학술제 팀 프로젝트(서울시 문화·여가시설 분석)를 개인 프로젝트로 확장한 인터랙티브 문화시설 탐색 맵**
+
+<!-- 배포 완료 후 URL 교체 -->
+<!-- **[Live Demo](https://seoul-culture-map.vercel.app)** -->
 
 ---
 
@@ -37,41 +47,46 @@
 
 ## 스크린샷
 
-### Culture Map — 시설 탐색
 ![Culture Map 메인](image/culturemap/culturemap-main.png)
-> 서울시 25개 자치구의 2,500+ 문화시설을 카테고리별 색상 마커로 표시. 자치구 클릭 시 시설 목록과 상세 정보 팝업 제공.
+> 서울시 25개 자치구의 2,500+ 문화시설을 카테고리별 색상 마커로 표시
 
+![Analytics](image/culturemap/culturemap-analytics.png)
+> K-means 군집분석, 권역별 분류, 카테고리 밀도 히트맵 등 4가지 분석 모드
+
+![코스 추천](image/culturemap/culturemap-course.png)
+> 관광 목적별 맞춤 자치구 Top 5 + AI 기반 반나절 투어 코스 생성
+
+<details>
+<summary>더 많은 스크린샷 보기</summary>
+
+### 시설 탐색
 ![시설 탐색 GIF](image/culturemap/culturemap-explore.gif)
 > 카테고리 필터, 시설 클릭 팝업, 자치구 전환 등 인터랙티브 탐색 과정.
 
 ### 지하철 노선 필터
 ![지하철 필터](image/culturemap/culturemap-subway.png)
-> 19개 지하철 노선 필터링 + 역 핀 표시. 시설과 가장 가까운 지하철역을 한눈에 확인 가능.
+> 19개 지하철 노선 필터링 + 역 핀 표시.
 
 ![지하철 필터 GIF](image/culturemap/culturemap-subway.gif)
-> 노선 선택/해제에 따라 지도 위 역 마커가 실시간으로 토글되는 모습.
+> 노선 선택/해제에 따라 역 마커가 실시간으로 토글.
 
-### Analytics — 데이터 분석
-![Analytics](image/culturemap/culturemap-analytics.png)
-> K-means 군집분석, 권역별 분류, 카테고리 밀도 히트맵, 지하철 접근성 등 4가지 분석 모드를 지도 위에 시각화.
-
+### 분석 모드 전환
 ![분석 모드 전환 GIF](image/culturemap/culturemap-analytics-modes.gif)
-> 군집분석 → 권역별 → 카테고리 밀도 → 지하철 접근성, 4가지 분석 모드 전환 과정.
+> 군집분석 → 권역별 → 카테고리 밀도 → 지하철 접근성 전환 과정.
 
-### Course — AI 코스 추천
-![코스 추천](image/culturemap/culturemap-course.png)
-> 5가지 관광 목적(공연/자연/역사/액티비티/문화예술) 선택 시 맞춤 자치구 Top 5 랭킹 + AI 기반 반나절 투어 코스 생성.
-
+### AI 코스 추천
 ![AI 코스 추천 GIF](image/culturemap/culturemap-course-ai.gif)
-> 관광 목적 선택 → 자치구 랭킹 표시 → AI 코스 추천 생성까지의 전체 흐름.
+> 관광 목적 선택 → 자치구 랭킹 → AI 코스 추천 생성 전체 흐름.
 
-### AI 마스코트 추천
+### AI 마스코트
 ![AI 마스코트](image/culturemap/culturemap-ai.png)
-> 플로팅 AI 마스코트 위젯. 자치구를 선택하면 OpenAI 기반 맞춤 코스를 마크다운 형식으로 추천.
+> 플로팅 AI 마스코트 위젯. 자치구 선택 시 OpenAI 기반 맞춤 코스 추천.
 
-### Favorites — 즐겨찾기
+### 즐겨찾기
 ![즐겨찾기](image/culturemap/culturemap-favorites.png)
-> 시설 하트 버튼으로 즐겨찾기 저장. 저장된 시설이 지도 위 하트 마커로 표시되며 클릭 시 해당 위치로 이동.
+> 하트 버튼으로 저장한 시설이 지도 위 하트 마커로 표시.
+
+</details>
 
 ---
 
@@ -167,7 +182,73 @@
 
 ---
 
-## API 엔드포인트
+## 아키텍처
+
+```
+┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
+│   Frontend  │      │   Backend    │      │  External APIs  │
+│  React 19   │◄────►│   FastAPI    │◄────►│                 │
+│  Vite       │ REST │  SQLAlchemy  │      │  서울 열린데이터  │
+│  Leaflet    │ /api │  scikit-learn│      │  한국관광공사     │
+│  Tailwind   │      │              │      │  OpenAI          │
+└─────────────┘      └──────┬───────┘      └─────────────────┘
+                            │
+                     ┌──────▼───────┐
+                     │   SQLite DB  │
+                     │  2,500+ 시설  │
+                     │  700+ 지하철역 │
+                     └──────────────┘
+```
+
+**데이터 흐름**
+1. `POST /api/sync` → 서울 공공데이터 + 한국관광공사 API에서 시설·이미지 수집 → SQLite 저장
+2. Frontend → `/api/places`, `/api/facilities` 등 REST 요청 → DB 조회 후 JSON 응답
+3. `/api/recommend` → DB에서 자치구 통계 + 장소 조회 → OpenAI에 프롬프트 전달 → 코스 텍스트 반환
+4. `/api/clusters` → scikit-learn K-means 실행 → 군집 라벨 + 대표 카테고리 반환
+
+---
+
+## 빠른 시작
+
+### 환경변수 설정
+
+```bash
+# backend/.env
+SEOUL_DATA_API_KEY=your_seoul_api_key
+TOUR_API_KEY=your_tour_api_key
+OPENAI_API_KEY=your_openai_key    # 선택 (AI 추천용)
+```
+
+### Backend
+
+```bash
+cd backend
+python -m venv venv
+venv/Scripts/activate   # Windows
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev   # → http://localhost:5173
+```
+
+### 데이터 동기화 (최신 공공데이터 반영)
+
+```bash
+curl -X POST http://localhost:8000/api/sync
+```
+
+---
+
+<details>
+<summary>API 엔드포인트</summary>
+
+FastAPI 자동 문서: `http://localhost:8000/docs`
 
 | Method | Path | 설명 |
 |--------|------|------|
@@ -183,9 +264,10 @@
 | GET | `/api/recommend?district=&lang=` | AI 코스 추천 |
 | POST | `/api/sync` | 공공데이터 API 수동 동기화 |
 
----
+</details>
 
-## 프로젝트 구조
+<details>
+<summary>프로젝트 구조</summary>
 
 ```
 seoul-culture-map/
@@ -245,68 +327,7 @@ seoul-culture-map/
 └── data/                     # 원본 CSV 데이터
 ```
 
----
-
-## 빠른 시작
-
-### 환경변수 설정
-
-```bash
-# backend/.env
-SEOUL_DATA_API_KEY=your_seoul_api_key
-TOUR_API_KEY=your_tour_api_key
-OPENAI_API_KEY=your_openai_key    # 선택 (AI 추천용)
-```
-
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-venv/Scripts/activate   # Windows
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev   # → http://localhost:5173
-```
-
-### 데이터 동기화 (최신 공공데이터 반영)
-
-```bash
-curl -X POST http://localhost:8000/api/sync
-```
-
----
-
-## 아키텍처
-
-```
-┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
-│   Frontend  │      │   Backend    │      │  External APIs  │
-│  React 19   │◄────►│   FastAPI    │◄────►│                 │
-│  Vite       │ REST │  SQLAlchemy  │      │  서울 열린데이터  │
-│  Leaflet    │ /api │  scikit-learn│      │  한국관광공사     │
-│  Tailwind   │      │              │      │  OpenAI          │
-└─────────────┘      └──────┬───────┘      └─────────────────┘
-                            │
-                     ┌──────▼───────┐
-                     │   SQLite DB  │
-                     │  2,500+ 시설  │
-                     │  700+ 지하철역 │
-                     └──────────────┘
-```
-
-**데이터 흐름**
-1. `POST /api/sync` → 서울 공공데이터 + 한국관광공사 API에서 시설·이미지 수집 → SQLite 저장
-2. Frontend → `/api/places`, `/api/facilities` 등 REST 요청 → DB 조회 후 JSON 응답
-3. `/api/recommend` → DB에서 자치구 통계 + 장소 조회 → OpenAI에 프롬프트 전달 → 코스 텍스트 반환
-4. `/api/clusters` → scikit-learn K-means 실행 → 군집 라벨 + 대표 카테고리 반환
+</details>
 
 ---
 
@@ -327,10 +348,10 @@ curl -X POST http://localhost:8000/api/sync
 - **외부 API 의존성엔 fallback 필수** — mock 데이터, 에러 바운더리 등 방어적 프로그래밍 실전 적용
 - **연산 위치 판단** — 군집분석은 서버(scikit-learn), 거리 계산은 프론트(Haversine)로 분리하는 기준 체득
 
-### 개선할 점
+### 다음 단계
 
-- TypeScript 도입 (런타임 버그 → 컴파일 타임 방지)
-- 테스트 코드 추가
+- TypeScript 마이그레이션
+- 테스트 코드 추가 (pytest + React Testing Library)
 - 모바일 반응형 UX
 - 다국어 지원 (외국인 대상 프로젝트이므로)
 
