@@ -170,17 +170,23 @@ def get_recommendation(
     recommendation_text: str
     if settings.OPENAI_API_KEY:
         try:
-            from openai import OpenAI
+            import httpx as _httpx
 
-            client = OpenAI(api_key=settings.OPENAI_API_KEY)
             prompt = _build_prompt(district, stats, top_places, nearby_stations, cluster_info, lang)
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=1024,
-                temperature=0.7,
+            resp = _httpx.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 1024,
+                    "temperature": 0.7,
+                },
+                timeout=30,
             )
-            recommendation_text = response.choices[0].message.content or ""
+            resp.raise_for_status()
+            data = resp.json()
+            recommendation_text = data["choices"][0]["message"]["content"] or ""
         except Exception:
             recommendation_text = _fallback_recommendation(
                 district, top_places, nearby_stations, cluster_info, lang

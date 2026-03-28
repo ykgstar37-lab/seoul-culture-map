@@ -2,12 +2,17 @@
 K-means clustering service for Seoul's 25 districts
 based on their cultural facility distribution across 6 categories.
 """
+import time
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sqlalchemy.orm import Session
 
 from app.models.facility import Facility
+
+# In-memory cache (data changes only on /api/sync)
+_cache: dict = {"result": None, "timestamp": 0}
+_CACHE_TTL = 3600  # 1 hour
 
 CATEGORIES = ["영화관", "공연시설", "박물관/유적지", "방탈출", "공원", "전통사찰"]
 
@@ -51,16 +56,12 @@ def _assign_cluster_name(centroid: np.ndarray, used_names: set[str]) -> tuple[st
 def compute_clusters(db: Session, n_clusters: int = 4) -> dict:
     """
     Run K-means clustering on the 25 districts × 6 categories feature matrix.
-
-    Returns:
-        {
-            "clusters": [
-                {"id": 0, "name": "...", "districts": [...], "dominant_categories": [...]},
-                ...
-            ],
-            "district_labels": {"강남구": 0, ...}
-        }
+    Results are cached for 1 hour since data only changes on sync.
     """
+    now = time.time()
+    if _cache["result"] is not None and (now - _cache["timestamp"]) < _CACHE_TTL:
+        return _cache["result"]
+
     # Build feature matrix from DB
     rows = db.query(Facility).all()
 
@@ -112,7 +113,10 @@ def compute_clusters(db: Session, n_clusters: int = 4) -> dict:
             "dominant_categories": dominant_cats,
         })
 
-    return {
+    result = {
         "clusters": clusters,
         "district_labels": district_labels,
     }
+    _cache["result"] = result
+    _cache["timestamp"] = time.time()
+    return result

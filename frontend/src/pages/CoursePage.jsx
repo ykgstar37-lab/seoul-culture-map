@@ -4,6 +4,7 @@ import L from "leaflet";
 import Navbar from "../components/Navbar";
 import { fetchDistricts, fetchPlaces } from "../api/client";
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
 
 const api = axios.create({ baseURL: "/api", timeout: 30000 });
 
@@ -103,13 +104,13 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(false);
   const [places, setPlaces] = useState([]);
   const [courseStops, setCourseStops] = useState([]);
+  const [mobilePanel, setMobilePanel] = useState(false);
   const mapRef = useRef(null);
 
   useEffect(() => {
     fetchDistricts().then(setDistricts);
   }, []);
 
-  /* Rank districts by purpose */
   const rankedDistricts = useMemo(() => {
     if (!selectedPurpose || !districts.length) return [];
     const purpose = PURPOSES.find((p) => p.id === selectedPurpose);
@@ -125,7 +126,6 @@ export default function CoursePage() {
       .slice(0, 5);
   }, [districts, selectedPurpose]);
 
-  /* Fetch places when a district is selected */
   useEffect(() => {
     if (!selectedDistrict) { setPlaces([]); return; }
     let cancelled = false;
@@ -135,7 +135,6 @@ export default function CoursePage() {
     return () => { cancelled = true; };
   }, [selectedDistrict]);
 
-  /* Auto-select top district when purpose changes */
   useEffect(() => {
     if (rankedDistricts.length > 0) {
       setSelectedDistrict(rankedDistricts[0].name);
@@ -167,11 +166,115 @@ export default function CoursePage() {
   const purposeData = PURPOSES.find((p) => p.id === selectedPurpose);
   const glassCard = "bg-white/30 backdrop-blur-xl border border-white/40 rounded-2xl shadow-xl";
 
-  /* Filter places by purpose categories */
   const filteredPlaces = useMemo(() => {
     if (!purposeData) return places;
     return places.filter((p) => purposeData.categories.includes(p.category));
   }, [places, purposeData]);
+
+  const sidebarContent = (
+    <>
+      {/* Title */}
+      <div className={`${glassCard} px-4 py-3`}>
+        <h1 className="text-lg font-bold text-gray-900">관광 코스 추천</h1>
+        <p className="text-[11px] text-gray-500">목적을 선택하면 맞춤 자치구 Top 5가 지도에 표시됩니다</p>
+      </div>
+
+      {/* Purpose selector */}
+      <div className={`${glassCard} p-4`}>
+        <p className="text-[10px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">관광 목적</p>
+        <div className="flex flex-col gap-1.5">
+          {PURPOSES.map((p) => {
+            const isActive = selectedPurpose === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setSelectedPurpose(isActive ? null : p.id)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all text-left ${
+                  isActive
+                    ? "text-white shadow-md font-bold"
+                    : "bg-white/40 text-gray-600 hover:bg-white/70 font-medium"
+                }`}
+                style={isActive ? { backgroundColor: p.color } : undefined}
+              >
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={p.icon} />
+                </svg>
+                <div>
+                  <span className="block">{p.label}</span>
+                  <span className={`block text-[10px] ${isActive ? "text-white/80" : "text-gray-400"}`}>{p.description}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Top 5 ranking */}
+      {rankedDistricts.length > 0 && (
+        <div className={`${glassCard} p-4`}>
+          <p className="text-[10px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">추천 자치구 Top 5</p>
+          <div className="space-y-1.5">
+            {rankedDistricts.map((d, i) => {
+              const isActive = selectedDistrict === d.name;
+              return (
+                <button
+                  key={d.name}
+                  onClick={() => setSelectedDistrict(d.name)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all ${
+                    isActive ? "bg-white/70 shadow-sm" : "hover:bg-white/40"
+                  }`}
+                >
+                  <span
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+                    style={{ backgroundColor: purposeData?.color || "#facc15" }}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-bold text-gray-800 block">{d.name}</span>
+                    <span className="text-[10px] text-gray-400">
+                      {purposeData?.categories.map((cat) => `${cat} ${(d.categories || {})[cat] || 0}`).join(" · ")}
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold" style={{ color: purposeData?.color }}>{d.score}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleRecommend}
+            disabled={loading || !selectedDistrict}
+            className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 text-white"
+            style={{ backgroundColor: purposeData?.color || "#facc15" }}
+          >
+            {loading ? "코스 생성 중..." : `${selectedDistrict} AI 코스 추천`}
+          </button>
+        </div>
+      )}
+
+      {/* Recommendation result */}
+      {recommendation && (
+        <div className={`${glassCard} p-4`}>
+          <p className="text-[10px] font-semibold text-gray-400 mb-2">AI 추천 코스</p>
+          <div className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none prose-headings:text-gray-800 prose-strong:text-gray-800 prose-li:my-0.5">
+            <ReactMarkdown>{recommendation}</ReactMarkdown>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!selectedPurpose && (
+        <div className={`${glassCard} p-8 text-center`}>
+          <svg className="w-14 h-14 mx-auto text-gray-200 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          <p className="text-sm text-gray-400">관광 목적을 선택해주세요</p>
+          <p className="text-[11px] text-gray-300 mt-1">목적에 맞는 추천 자치구가 지도에 표시됩니다</p>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
@@ -191,7 +294,6 @@ export default function CoursePage() {
           />
           {flyCoords && <FlyToDistrict coords={flyCoords} />}
 
-          {/* Top 5 district markers */}
           {rankedDistricts.map((d, i) => {
             const isSelected = selectedDistrict === d.name;
             return (
@@ -226,7 +328,6 @@ export default function CoursePage() {
             );
           })}
 
-          {/* Individual place markers */}
           {filteredPlaces
             .filter((p) => (p.lat || p.latitude) && (p.lng || p.longitude))
             .map((p, i) => {
@@ -247,7 +348,6 @@ export default function CoursePage() {
               );
             })}
 
-          {/* Course stop markers */}
           {courseStops
             .filter((s) => s.lat && s.lng)
             .map((stop, i) => (
@@ -262,7 +362,6 @@ export default function CoursePage() {
               </Marker>
             ))}
 
-          {/* Course route */}
           {courseStops.length >= 2 && (
             <Polyline
               positions={courseStops.filter((s) => s.lat && s.lng).map((s) => [s.lat, s.lng])}
@@ -273,118 +372,47 @@ export default function CoursePage() {
       </div>
 
       {/* Floating UI */}
-      <div className="relative z-10 pointer-events-none w-full h-full flex flex-col p-4 gap-4">
+      <div className="relative z-10 pointer-events-none w-full h-full flex flex-col p-2 md:p-4 gap-2 md:gap-4">
         <div className="pointer-events-auto"><Navbar /></div>
 
         <div className="flex-1 flex gap-4 min-h-0">
-          {/* Left panel */}
-          <aside className="pointer-events-auto w-[340px] flex-shrink-0 flex flex-col gap-3 overflow-y-auto">
-            {/* Title */}
-            <div className={`${glassCard} px-4 py-3`}>
-              <h1 className="text-lg font-bold text-gray-900">관광 코스 추천</h1>
-              <p className="text-[11px] text-gray-500">목적을 선택하면 맞춤 자치구 Top 5가 지도에 표시됩니다</p>
-            </div>
-
-            {/* Purpose selector */}
-            <div className={`${glassCard} p-4`}>
-              <p className="text-[10px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">관광 목적</p>
-              <div className="flex flex-col gap-1.5">
-                {PURPOSES.map((p) => {
-                  const isActive = selectedPurpose === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setSelectedPurpose(isActive ? null : p.id)}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all text-left ${
-                        isActive
-                          ? "text-white shadow-md font-bold"
-                          : "bg-white/40 text-gray-600 hover:bg-white/70 font-medium"
-                      }`}
-                      style={isActive ? { backgroundColor: p.color } : undefined}
-                    >
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d={p.icon} />
-                      </svg>
-                      <div>
-                        <span className="block">{p.label}</span>
-                        <span className={`block text-[10px] ${isActive ? "text-white/80" : "text-gray-400"}`}>{p.description}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Top 5 ranking */}
-            {rankedDistricts.length > 0 && (
-              <div className={`${glassCard} p-4`}>
-                <p className="text-[10px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">추천 자치구 Top 5</p>
-                <div className="space-y-1.5">
-                  {rankedDistricts.map((d, i) => {
-                    const isActive = selectedDistrict === d.name;
-                    return (
-                      <button
-                        key={d.name}
-                        onClick={() => setSelectedDistrict(d.name)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all ${
-                          isActive ? "bg-white/70 shadow-sm" : "hover:bg-white/40"
-                        }`}
-                      >
-                        <span
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-                          style={{ backgroundColor: purposeData?.color || "#facc15" }}
-                        >
-                          {i + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-bold text-gray-800 block">{d.name}</span>
-                          <span className="text-[10px] text-gray-400">
-                            {purposeData?.categories.map((cat) => `${cat} ${(d.categories || {})[cat] || 0}`).join(" · ")}
-                          </span>
-                        </div>
-                        <span className="text-sm font-bold" style={{ color: purposeData?.color }}>{d.score}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* AI recommend button */}
-                <button
-                  onClick={handleRecommend}
-                  disabled={loading || !selectedDistrict}
-                  className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 text-white"
-                  style={{ backgroundColor: purposeData?.color || "#facc15" }}
-                >
-                  {loading ? "코스 생성 중..." : `${selectedDistrict} AI 코스 추천`}
-                </button>
-              </div>
-            )}
-
-            {/* Recommendation result */}
-            {recommendation && (
-              <div className={`${glassCard} p-4`}>
-                <p className="text-[10px] font-semibold text-gray-400 mb-2">AI 추천 코스</p>
-                <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                  {recommendation}
-                </div>
-              </div>
-            )}
-
-            {/* Empty state */}
-            {!selectedPurpose && (
-              <div className={`${glassCard} p-8 text-center`}>
-                <svg className="w-14 h-14 mx-auto text-gray-200 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <p className="text-sm text-gray-400">관광 목적을 선택해주세요</p>
-                <p className="text-[11px] text-gray-300 mt-1">목적에 맞는 추천 자치구가 지도에 표시됩니다</p>
-              </div>
-            )}
+          {/* Desktop sidebar */}
+          <aside className="pointer-events-auto w-[340px] flex-shrink-0 hidden md:flex flex-col gap-3 overflow-y-auto">
+            {sidebarContent}
           </aside>
-
           <div className="flex-1" />
         </div>
       </div>
+
+      {/* Mobile bottom toggle */}
+      <button
+        onClick={() => setMobilePanel((v) => !v)}
+        className={`md:hidden fixed bottom-4 left-2 right-2 z-20 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all pointer-events-auto ${
+          mobilePanel ? "bg-yellow-400 text-gray-900" : "bg-white/80 backdrop-blur-xl text-gray-700"
+        }`}
+      >
+        {mobilePanel ? "닫기" : "코스 추천"}
+      </button>
+
+      {/* Mobile slide-up panel */}
+      {mobilePanel && (
+        <div className="md:hidden fixed inset-x-0 bottom-0 z-30 pointer-events-auto">
+          <div className="bg-white/90 backdrop-blur-xl border-t border-white/40 rounded-t-2xl shadow-xl max-h-[65vh] overflow-y-auto p-4 flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-bold text-gray-800">코스 추천</h3>
+              <button
+                onClick={() => setMobilePanel(false)}
+                className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {sidebarContent}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -35,6 +35,46 @@
 
 ---
 
+## 스크린샷
+
+### Culture Map — 시설 탐색
+![Culture Map 메인](image/culturemap/culturemap-main.png)
+> 서울시 25개 자치구의 2,500+ 문화시설을 카테고리별 색상 마커로 표시. 자치구 클릭 시 시설 목록과 상세 정보 팝업 제공.
+
+![시설 탐색 GIF](image/culturemap/culturemap-explore.gif)
+> 카테고리 필터, 시설 클릭 팝업, 자치구 전환 등 인터랙티브 탐색 과정.
+
+### 지하철 노선 필터
+![지하철 필터](image/culturemap/culturemap-subway.png)
+> 19개 지하철 노선 필터링 + 역 핀 표시. 시설과 가장 가까운 지하철역을 한눈에 확인 가능.
+
+![지하철 필터 GIF](image/culturemap/culturemap-subway.gif)
+> 노선 선택/해제에 따라 지도 위 역 마커가 실시간으로 토글되는 모습.
+
+### Analytics — 데이터 분석
+![Analytics](image/culturemap/culturemap-analytics.png)
+> K-means 군집분석, 권역별 분류, 카테고리 밀도 히트맵, 지하철 접근성 등 4가지 분석 모드를 지도 위에 시각화.
+
+![분석 모드 전환 GIF](image/culturemap/culturemap-analytics-modes.gif)
+> 군집분석 → 권역별 → 카테고리 밀도 → 지하철 접근성, 4가지 분석 모드 전환 과정.
+
+### Course — AI 코스 추천
+![코스 추천](image/culturemap/culturemap-course.png)
+> 5가지 관광 목적(공연/자연/역사/액티비티/문화예술) 선택 시 맞춤 자치구 Top 5 랭킹 + AI 기반 반나절 투어 코스 생성.
+
+![AI 코스 추천 GIF](image/culturemap/culturemap-course-ai.gif)
+> 관광 목적 선택 → 자치구 랭킹 표시 → AI 코스 추천 생성까지의 전체 흐름.
+
+### AI 마스코트 추천
+![AI 마스코트](image/culturemap/culturemap-ai.png)
+> 플로팅 AI 마스코트 위젯. 자치구를 선택하면 OpenAI 기반 맞춤 코스를 마크다운 형식으로 추천.
+
+### Favorites — 즐겨찾기
+![즐겨찾기](image/culturemap/culturemap-favorites.png)
+> 시설 하트 버튼으로 즐겨찾기 저장. 저장된 시설이 지도 위 하트 마커로 표시되며 클릭 시 해당 위치로 이동.
+
+---
+
 ## 핵심 기능
 
 ### 1. Culture Map — 인터랙티브 시설 탐색
@@ -244,13 +284,61 @@ curl -X POST http://localhost:8000/api/sync
 
 ---
 
-## 포트 배정
+## 아키텍처
 
-| 프로젝트 | 프론트엔드 | 백엔드 |
-|----------|-----------|--------|
-| seoul-culture-map | `:5173` | `:8000` |
-| crypto-volatility-dashboard | `:5174` | `:8001` |
-| portfolio | `:5175` | — |
+```
+┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
+│   Frontend  │      │   Backend    │      │  External APIs  │
+│  React 19   │◄────►│   FastAPI    │◄────►│                 │
+│  Vite       │ REST │  SQLAlchemy  │      │  서울 열린데이터  │
+│  Leaflet    │ /api │  scikit-learn│      │  한국관광공사     │
+│  Tailwind   │      │              │      │  OpenAI          │
+└─────────────┘      └──────┬───────┘      └─────────────────┘
+                            │
+                     ┌──────▼───────┐
+                     │   SQLite DB  │
+                     │  2,500+ 시설  │
+                     │  700+ 지하철역 │
+                     └──────────────┘
+```
+
+**데이터 흐름**
+1. `POST /api/sync` → 서울 공공데이터 + 한국관광공사 API에서 시설·이미지 수집 → SQLite 저장
+2. Frontend → `/api/places`, `/api/facilities` 등 REST 요청 → DB 조회 후 JSON 응답
+3. `/api/recommend` → DB에서 자치구 통계 + 장소 조회 → OpenAI에 프롬프트 전달 → 코스 텍스트 반환
+4. `/api/clusters` → scikit-learn K-means 실행 → 군집 라벨 + 대표 카테고리 반환
+
+---
+
+## 회고
+
+### 어려웠던 점
+
+- **공공 API 데이터 정규화** — 두 API의 응답 형식·좌표 필드명이 달라 하나의 테이블로 통합하는 데 많은 변환 작업 필요
+- **Leaflet + React 동기화** — Leaflet의 DOM 직접 조작과 React Virtual DOM의 라이프사이클 불일치로 마커·팝업 렌더링 이슈 반복
+- **CSS overflow 충돌** — `overflow-y: auto`가 `overflow-x`도 강제해 드롭다운이 잘리는 문제, `position: fixed`로 우회
+- **프론트-백엔드 필드명 불일치** — `lat`/`lng` vs `latitude`/`longitude` 차이로 전체 마커 미표시 버그 발생
+
+### 배운 점
+
+- **데이터 분석의 가치는 전달 방식에 따라 달라진다** — R 정적 보고서를 인터랙티브 웹으로 전환하며 체감
+- **API-first 설계의 중요성** — 응답 스키마를 먼저 정의하고 프론트를 개발하는 흐름이 효율적
+- **지도 시각화 핵심은 정보 밀도 조절** — 2,500+ 마커를 클러스터링·히트맵으로 조절하는 UX 패턴 습득
+- **외부 API 의존성엔 fallback 필수** — mock 데이터, 에러 바운더리 등 방어적 프로그래밍 실전 적용
+- **연산 위치 판단** — 군집분석은 서버(scikit-learn), 거리 계산은 프론트(Haversine)로 분리하는 기준 체득
+
+### 개선할 점
+
+- TypeScript 도입 (런타임 버그 → 컴파일 타임 방지)
+- 테스트 코드 추가
+- 모바일 반응형 UX
+- 다국어 지원 (외국인 대상 프로젝트이므로)
+
+---
+
+## 라이선스
+
+MIT License
 
 ---
 
