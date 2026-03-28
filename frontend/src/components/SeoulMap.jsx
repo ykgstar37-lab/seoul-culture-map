@@ -2,8 +2,7 @@ import { MapContainer, TileLayer, CircleMarker, Tooltip, Popup, useMap, Polyline
 import { useState, useEffect, useRef, useMemo } from "react";
 import L from "leaflet";
 import { fetchPlaces } from "../api/client";
-
-const SEOUL_CENTER = [37.5665, 126.978];
+import { SEOUL_CENTER, CATEGORY_COLORS } from "../constants";
 const ZOOM = 11;
 
 const CLUSTER_COLORS = ["#facc15", "#3b82f6", "#9ca3af", "#f97316"];
@@ -219,17 +218,6 @@ const CATEGORY_ICON_SVG = {
   "유적지": `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 3L2 12h3v8h14v-8h3L12 3zM9 21v-6h6v6"/></svg>`,
   "공원": `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M5 20h14M12 4l-5 8h3l-2 4h8l-2-4h3L12 4z"/></svg>`,
   "레포츠": `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
-};
-
-const CATEGORY_COLORS = {
-  "관광지": "#f97316",
-  "문화시설": "#6366f1",
-  "공연시설": "#ec4899",
-  "박물관": "#8b5cf6",
-  "박물관/유적지": "#8b5cf6",
-  "유적지": "#a855f7",
-  "공원": "#22c55e",
-  "레포츠": "#eab308",
 };
 
 function makeCategoryIcon(category) {

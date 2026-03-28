@@ -3,13 +3,7 @@ import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet"
 import L from "leaflet";
 import Navbar from "../components/Navbar";
 import useFavorites from "../hooks/useFavorites";
-
-const SEOUL_CENTER = [37.5665, 126.978];
-
-const CATEGORY_COLORS = {
-  "관광지": "#f97316", "문화시설": "#6366f1", "공연시설": "#ec4899",
-  "박물관/유적지": "#8b5cf6", "공원": "#22c55e", "레포츠": "#eab308",
-};
+import { SEOUL_CENTER, CATEGORY_COLORS } from "../constants";
 
 function makeIcon(category, active) {
   const color = CATEGORY_COLORS[category] || "#6b7280";

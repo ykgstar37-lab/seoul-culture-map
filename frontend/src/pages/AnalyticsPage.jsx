@@ -7,8 +7,8 @@ import {
 } from "recharts";
 import Navbar from "../components/Navbar";
 import { fetchClusters, fetchDistricts, fetchStats, fetchSubwayStations } from "../api/client";
-
-const SEOUL_CENTER = [37.5665, 126.978];
+import { SEOUL_CENTER, CATEGORY_COLORS } from "../constants";
+import { haversine } from "../utils";
 
 const PIE_COLORS = ["#facc15", "#1f2937", "#9ca3af", "#f97316", "#3b82f6", "#10b981"];
 const CLUSTER_COLORS = ["#facc15", "#3b82f6", "#9ca3af", "#f97316"];
@@ -28,29 +28,12 @@ function getRegion(name) {
   return null;
 }
 
-const CATEGORY_COLORS = {
-  "관광지": "#f97316",
-  "문화시설": "#6366f1",
-  "공연시설": "#ec4899",
-  "박물관/유적지": "#8b5cf6",
-  "공원": "#22c55e",
-  "레포츠": "#eab308",
-};
-
 function intensityColor(value, max) {
   const t = max > 0 ? value / max : 0;
   const r = Math.round(250 - t * 10);
   const g = Math.round(220 - t * 180);
   const b = Math.round(100 - t * 80);
   return `rgb(${r},${g},${b})`;
-}
-
-function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function AnalysisMarkers({ districts, mode, heatmapCategory, clusters, selectedDistrict, onSelect, subwayStations, accessibilityScores }) {

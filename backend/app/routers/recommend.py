@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -12,23 +10,9 @@ from app.models.facility import Facility
 from app.models.place import Place
 from app.models.subway import SubwayStation
 from app.services.clustering import compute_clusters
+from app.utils import haversine
 
 router = APIRouter(prefix="/api/recommend", tags=["recommend"])
-
-
-def _haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    """Calculate haversine distance in km between two lat/lng points."""
-    R = 6371.0
-    dlat = math.radians(lat2 - lat1)
-    dlng = math.radians(lng2 - lng1)
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(math.radians(lat1))
-        * math.cos(math.radians(lat2))
-        * math.sin(dlng / 2) ** 2
-    )
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
 
 
 def _find_nearest_stations(
@@ -37,7 +21,7 @@ def _find_nearest_stations(
     """Return the nearest subway stations to a given point."""
     scored = []
     for s in stations:
-        dist = _haversine(lat, lng, s.lat, s.lng)
+        dist = haversine(lat, lng, s.lat, s.lng)
         scored.append({"name": s.name, "line": s.line, "distance_km": round(dist, 2)})
     scored.sort(key=lambda x: x["distance_km"])
     return scored[:limit]

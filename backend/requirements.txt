@@ -6,3 +6,5 @@ pandas
 openai
 httpx
 scikit-learn
+pytest
+httpx
