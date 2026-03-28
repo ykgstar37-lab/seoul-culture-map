@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
 
 const DISTRICTS = [
   "강남구", "강동구", "강북구", "강서구", "관악구",
@@ -94,8 +95,8 @@ export default function AiMascot() {
 
           {/* Result area */}
           {result && (
-            <div className="mt-4 p-3 bg-white/30 rounded-xl text-sm text-gray-800 leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
-              {result}
+            <div className="mt-4 p-3 bg-white/30 rounded-xl text-sm text-gray-800 leading-relaxed max-h-60 overflow-y-auto prose prose-sm prose-gray">
+              <ReactMarkdown>{result}</ReactMarkdown>
             </div>
           )}
         </div>
