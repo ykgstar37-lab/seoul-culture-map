@@ -33,11 +33,15 @@
 ### 확장 (개인 프로젝트)
 
 팀 프로젝트의 분석 결과를 **인터랙티브 웹 서비스**로 전환했습니다.
+- **기간**: 2026.03 ~
+
+학술제 데이터는 2023년 기준으로 약 2~3년이 지나 노후화된 상태였기 때문에, **서울 열린데이터광장**과 **한국관광공사 Tour API**를 연동하여 최신 시설 데이터를 수집했습니다. 이 과정에서 카테고리 체계도 변경되었습니다 — 기존 학술제의 6개 카테고리(영화관, 방탈출, 전통사찰 등)에서 API 기반의 7개 카테고리(관광지, 문화시설, 공연시설, 박물관/유적지, 유적지, 공원, 레포츠)로 재편되었습니다.
 
 | 구분 | 학술제 (팀) | Seoul Culture Map (개인) |
 |------|-----------|--------------------------|
 | 형태 | R 분석 스크립트 + 보고서 | 풀스택 웹 서비스 |
-| 데이터 | CSV 정적 데이터 | 공공 API + DB 실시간 서빙 |
+| 데이터 | CSV 정적 데이터 (2023년) | 공공 API + DB 실시간 서빙 |
+| 카테고리 | 영화관, 공연시설, 박물관/유적지, 방탈출, 공원, 전통사찰 | 관광지, 문화시설, 공연시설, 박물관/유적지, 유적지, 공원, 레포츠 |
 | 시각화 | ggplot2 정적 차트 | Leaflet 인터랙티브 맵 |
 | 분석 | R 스크립트 | 지도 위 실시간 분석 시각화 |
 | 결과 | PDF 보고서 | React 대시보드 (4개 페이지) |
@@ -95,8 +99,8 @@
 ### 1. Culture Map — 인터랙티브 시설 탐색
 
 - Leaflet 기반 서울시 25개 자치구 지도
-- **7개 카테고리** 시설 마커 (관광지/문화시설/공연시설/박물관·유적지/공원/레포츠/유적지)
-- 카테고리별 색상 원형 아이콘 (관광지: 주황, 문화시설: 인디고, 공연시설: 핑크, 박물관: 보라, 공원: 초록, 레포츠: 노랑)
+- **7개 카테고리** 시설 마커 (관광지/문화시설/공연시설/박물관·유적지/유적지/공원/레포츠)
+- 카테고리별 색상 원형 아이콘 (관광지: 주황, 문화시설: 인디고, 공연시설: 핑크, 박물관/유적지: 보라, 유적지: 퍼플, 공원: 초록, 레포츠: 노랑)
 - 시설 클릭 시 **사진 + 상세 정보 팝업** (한국관광공사 이미지)
 - 시설별 **즐겨찾기** (하트 버튼, localStorage 저장)
 - 밀집도 히트맵 / K-means 군집분석 토글
@@ -213,11 +217,16 @@
 ### 환경변수 설정
 
 ```bash
-# backend/.env
-SEOUL_DATA_API_KEY=your_seoul_api_key
-TOUR_API_KEY=your_tour_api_key
-OPENAI_API_KEY=your_openai_key    # 선택 (AI 추천용)
+cd backend
+cp .env.example .env
+# .env 파일을 열어 실제 API 키로 교체
 ```
+
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| `SEOUL_DATA_API_KEY` | O | 서울 열린데이터광장 API 키 |
+| `TOUR_API_KEY` | O | 한국관광공사 Tour API 키 |
+| `OPENAI_API_KEY` | 선택 | AI 코스 추천용 (없으면 fallback) |
 
 ### Backend
 
@@ -226,7 +235,7 @@ cd backend
 python -m venv venv
 venv/Scripts/activate   # Windows
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8003
 ```
 
 ### Frontend
@@ -240,7 +249,7 @@ npm run dev   # → http://localhost:5173
 ### 데이터 동기화 (최신 공공데이터 반영)
 
 ```bash
-curl -X POST http://localhost:8000/api/sync
+curl -X POST http://localhost:8003/api/sync
 ```
 
 ---
@@ -248,7 +257,7 @@ curl -X POST http://localhost:8000/api/sync
 <details>
 <summary>API 엔드포인트</summary>
 
-FastAPI 자동 문서: `http://localhost:8000/docs`
+FastAPI 자동 문서: `http://localhost:8003/docs`
 
 | Method | Path | 설명 |
 |--------|------|------|
@@ -273,15 +282,25 @@ FastAPI 자동 문서: `http://localhost:8000/docs`
 seoul-culture-map/
 ├── README.md
 ├── DEVLOG.md
+├── start.bat                 # 백엔드+프론트 동시 실행 (Windows)
 ├── .gitignore
 │
 ├── backend/
 │   ├── requirements.txt
-│   ├── .env                  # API 키 (TOUR_API_KEY, SEOUL_DATA_API_KEY 등)
+│   ├── .env.example          # 환경변수 템플릿
+│   ├── .env                  # API 키 (git 제외)
+│   ├── run_server.py         # uvicorn 실행 스크립트
+│   ├── data/
+│   │   └── culture.db        # SQLite 시드 데이터
+│   ├── tests/
+│   │   ├── conftest.py       # pytest 픽스처
+│   │   ├── test_api.py       # API 엔드포인트 테스트
+│   │   └── test_utils.py     # 유틸리티 함수 테스트
 │   └── app/
 │       ├── main.py           # FastAPI 앱 + lifespan
 │       ├── config.py         # 환경변수 설정
 │       ├── database.py       # SQLAlchemy 엔진
+│       ├── utils.py          # 공통 유틸리티
 │       ├── models/
 │       │   ├── facility.py   # 자치구별 집계 모델
 │       │   ├── place.py      # 개별 시설 모델 (좌표, 이미지)
@@ -299,10 +318,12 @@ seoul-culture-map/
 │
 ├── frontend/
 │   ├── package.json
-│   ├── vite.config.js        # 포트 5173, 프록시 → :8000
+│   ├── vite.config.js        # 포트 5173, 프록시 → :8003
 │   └── src/
 │       ├── App.jsx           # 라우터 (/, /analytics, /course, /favorites)
 │       ├── main.jsx
+│       ├── constants.js      # 좌표, 카테고리 색상 상수
+│       ├── utils.js          # 공통 유틸리티
 │       ├── api/
 │       │   └── client.js     # API 함수 + mock fallback
 │       ├── hooks/
@@ -317,6 +338,7 @@ seoul-culture-map/
 │       │   ├── Navbar.jsx
 │       │   ├── RangeSlider.jsx
 │       │   ├── FavoritesPanel.jsx
+│       │   ├── TourismTags.jsx   # 관광 태그 컴포넌트
 │       │   └── AiMascot.jsx
 │       └── pages/
 │           ├── Dashboard.jsx     # Culture Map 페이지
@@ -324,7 +346,10 @@ seoul-culture-map/
 │           ├── CoursePage.jsx    # 목적별 코스 추천
 │           └── FavoritesPage.jsx # 즐겨찾기 (지도 + 패널)
 │
-└── data/                     # 원본 CSV 데이터
+├── data/                     # 원본 CSV 데이터
+├── image/                    # 스크린샷 및 에셋
+└── logs/
+    └── README_TODO.md        # 개발 TODO 목록
 ```
 
 </details>
@@ -348,12 +373,9 @@ seoul-culture-map/
 - **외부 API 의존성엔 fallback 필수** — mock 데이터, 에러 바운더리 등 방어적 프로그래밍 실전 적용
 - **연산 위치 판단** — 군집분석은 서버(scikit-learn), 거리 계산은 프론트(Haversine)로 분리하는 기준 체득
 
-### 다음 단계
+### 향후 방향
 
-- TypeScript 마이그레이션
-- 테스트 코드 추가 (pytest + React Testing Library)
-- 모바일 반응형 UX
-- 다국어 지원 (외국인 대상 프로젝트이므로)
+TypeScript 마이그레이션, 다국어(i18n) 지원, Docker 배포 환경 구성 등을 검토 중입니다.
 
 ---
 

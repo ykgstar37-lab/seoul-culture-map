@@ -4,7 +4,7 @@
 
 ---
 
-## v0.1.0 — Initial Setup
+## v0.1.0 — Initial Setup (2026-03-26)
 
 **프로젝트 초기 셋업 및 MVP**
 
@@ -29,7 +29,7 @@
 
 ---
 
-## v0.1.1 — 지도 인터랙션 기능 구현
+## v0.1.1 — 지도 인터랙션 기능 구현 (2026-03-27)
 
 **대시보드 UI + 지도 마커 + 지하철 노선**
 
@@ -171,3 +171,23 @@
 ### DB 마이그레이션
 - SQLite에 `ALTER TABLE places ADD COLUMN image_url TEXT` 직접 실행
 - `POST /api/sync` 호출로 Tour API 데이터 재수집 (이미지 포함)
+
+---
+
+## v0.6.0 — 리팩토링 + 테스트 + DX 개선 (2026-03-28)
+
+### 코드 중복 제거
+- 프론트엔드: 자치구 좌표, 카테고리 색상 등 반복 정의를 `constants.js`로 통합
+- 프론트엔드: 공통 유틸리티를 `utils.js`로 분리
+- 백엔드: 공통 유틸리티를 `app/utils.py`로 분리
+
+### pytest 테스트 추가
+- `tests/conftest.py` — 테스트 DB 픽스처 구성
+- `tests/test_api.py` — API 엔드포인트 테스트
+- `tests/test_utils.py` — 유틸리티 함수 테스트
+- 총 **15개 테스트 케이스** 작성
+
+### DX 개선
+- `.env.example` 추가 — 환경변수 템플릿 제공
+- `run_server.py` — uvicorn 실행 스크립트
+- `start.bat` — Windows에서 백엔드+프론트엔드 동시 실행
