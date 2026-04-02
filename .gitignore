@@ -19,3 +19,4 @@ Thumbs.db
 
 # DB
 *.db
+chroma_data/

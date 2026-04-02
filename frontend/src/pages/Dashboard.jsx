@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [showCluster, setShowCluster] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
   const [mobilePanel, setMobilePanel] = useState(null); // "filter" | "districts" | null
+  const [chatHighlightedPlaces, setChatHighlightedPlaces] = useState([]);
 
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
 
@@ -125,6 +126,8 @@ export default function Dashboard() {
             selectedLine={selectedLine}
             onToggleFavorite={toggleFavorite}
             isFavorite={isFavorite}
+            highlightedPlaces={chatHighlightedPlaces}
+            onClearHighlights={() => setChatHighlightedPlaces([])}
           />
         )}
       </div>
@@ -231,7 +234,7 @@ export default function Dashboard() {
       )}
 
       {/* AI Mascot */}
-      <AiMascot />
+      <AiMascot onShowPlaces={setChatHighlightedPlaces} />
 
       {/* Favorites Panel */}
       {showFavorites && (

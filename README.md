@@ -6,8 +6,10 @@
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-Agent-FF6F00?logo=langchain&logoColor=white)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_DB-green)
 
-> **학술제 팀 프로젝트(서울시 문화·여가시설 분석)를 개인 프로젝트로 확장한 인터랙티브 문화시설 탐색 맵**
+> **학술제 팀 프로젝트(서울시 문화·여가시설 분석)를 개인 프로젝트로 확장한 인터랙티브 문화시설 탐색 맵 + AI 대화형 가이드**
 
 <!-- 배포 완료 후 URL 교체 -->
 <!-- **[Live Demo](https://seoul-culture-map.vercel.app)** -->
@@ -44,7 +46,8 @@
 | 카테고리 | 영화관, 공연시설, 박물관/유적지, 방탈출, 공원, 전통사찰 | 관광지, 문화시설, 공연시설, 박물관/유적지, 유적지, 공원, 레포츠 |
 | 시각화 | ggplot2 정적 차트 | Leaflet 인터랙티브 맵 |
 | 분석 | R 스크립트 | 지도 위 실시간 분석 시각화 |
-| 결과 | PDF 보고서 | React 대시보드 (4개 페이지) |
+| AI | 없음 | LangGraph 멀티스텝 에이전트 + RAG |
+| 결과 | PDF 보고서 | React 대시보드 (4개 페이지) + AI 챗봇 |
 | 배포 | 로컬 실행 | Render + Vercel 클라우드 |
 
 ---
@@ -84,7 +87,7 @@
 
 ### AI 마스코트
 ![AI 마스코트](image/culturemap/culturemap-ai.png)
-> 플로팅 AI 마스코트 위젯. 자치구 선택 시 OpenAI 기반 맞춤 코스 추천.
+> 플로팅 AI 마스코트 위젯. 자연어 대화로 맞춤 관광 추천 + 지도 연동.
 
 ### 즐겨찾기
 ![즐겨찾기](image/culturemap/culturemap-favorites.png)
@@ -108,7 +111,29 @@
 - 자치구 경계선 GeoJSON 오버레이
 - 자치구 목록 패널 (5대 권역별 필터: 도심/동북/서북/서남/동남)
 
-### 2. Analytics — 지도 위 데이터 분석
+### 2. AI 대화형 가이드 (NEW)
+
+LangGraph 멀티스텝 에이전트 파이프라인 기반의 대화형 AI 관광 가이드:
+
+- **자연어 대화** — "종로구 추천해줘", "박물관 어디있어?", "서울 공원 추천" 등 자유 텍스트 입력
+- **3단계 에이전트 파이프라인**:
+  1. **의도 분류** — GPT-4o-mini structured output로 recommend/search/info/chitchat 분류
+  2. **데이터 검색** — SQLite DB 조회 + ChromaDB 시맨틱 벡터 검색 (RAG)
+  3. **응답 생성** — 검색된 컨텍스트 기반 맞춤 응답 생성
+- **ChromaDB 시맨틱 검색** — 2,500+ 시설을 로컬 임베딩 (all-MiniLM-L6-v2), API 비용 없음
+- **SSE 스트리밍** — 토큰 단위 실시간 응답 표시
+- **지도 연동** — "지도에 표시" 버튼 클릭 시 추천 장소를 번호 마커 + 경로선으로 지도에 표시
+- **대화 이력** — SQLite에 세션/메시지 영구 저장, 이전 대화 불러오기 지원
+
+```
+사용자 메시지
+    ↓
+[의도 분류] → chitchat → [응답 생성] → 스트리밍 출력
+    ↓
+[DB + 벡터 검색] → [응답 생성] → 스트리밍 출력 + 지도 마커
+```
+
+### 3. Analytics — 지도 위 데이터 분석
 
 4가지 분석 모드를 지도 위에 직접 시각화:
 
@@ -119,7 +144,7 @@
 
 사이드바: 자치구 비교 레이더 차트 + 전체 카테고리 분포 파이 차트
 
-### 3. Course — 관광 목적별 코스 추천
+### 4. Course — 관광 목적별 코스 추천
 
 5가지 관광 목적 선택 → 맞춤 자치구 Top 5 지도 표시:
 
@@ -131,7 +156,7 @@
 
 자치구 선택 후 **AI 코스 추천** (OpenAI 연동, fallback 지원)
 
-### 4. Favorites — 즐겨찾기 관리
+### 5. Favorites — 즐겨찾기 관리
 
 - Culture Map에서 저장한 시설이 **지도 위 하트 마커**로 표시
 - 클릭 시 해당 위치로 지도 이동 (flyTo)
@@ -159,12 +184,15 @@
 
 | 기술 | 용도 |
 |------|------|
-| **FastAPI** | REST API 서버 |
+| **FastAPI** | REST API 서버 + SSE 스트리밍 |
 | **SQLAlchemy** | ORM |
-| **SQLite** | 데이터베이스 |
+| **SQLite** | 관계형 데이터베이스 |
+| **LangGraph** | 멀티스텝 AI 에이전트 파이프라인 |
+| **LangChain + OpenAI** | LLM 연동 (GPT-4o-mini) |
+| **ChromaDB** | 벡터 DB — 시맨틱 검색 (로컬 임베딩) |
 | **scikit-learn** | K-means 군집분석 |
-| **OpenAI API** | AI 코스 추천 (선택) |
 | **httpx** | 외부 API 비동기 호출 |
+| **sse-starlette** | Server-Sent Events 스트리밍 |
 
 ### Frontend
 
@@ -189,26 +217,31 @@
 ## 아키텍처
 
 ```
-┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
-│   Frontend  │      │   Backend    │      │  External APIs  │
-│  React 19   │◄────►│   FastAPI    │◄────►│                 │
-│  Vite       │ REST │  SQLAlchemy  │      │  서울 열린데이터  │
-│  Leaflet    │ /api │  scikit-learn│      │  한국관광공사     │
-│  Tailwind   │      │              │      │  OpenAI          │
-└─────────────┘      └──────┬───────┘      └─────────────────┘
-                            │
-                     ┌──────▼───────┐
-                     │   SQLite DB  │
-                     │  2,500+ 시설  │
-                     │  700+ 지하철역 │
-                     └──────────────┘
+┌─────────────┐      ┌──────────────────────┐      ┌─────────────────┐
+│   Frontend  │      │      Backend         │      │  External APIs  │
+│  React 19   │◄────►│   FastAPI            │◄────►│                 │
+│  Vite       │ REST │                      │      │  서울 열린데이터  │
+│  Leaflet    │ /api │  ┌─── LangGraph ───┐ │      │  한국관광공사     │
+│  Tailwind   │  +   │  │ Intent → Data  │ │      │  OpenAI          │
+│             │ SSE  │  │ Retrieval →    │ │      └─────────────────┘
+│             │      │  │ Response Gen.  │ │
+│             │      │  └────────────────┘ │
+└─────────────┘      └──────┬─────┬────────┘
+                            │     │
+                     ┌──────▼──┐ ┌▼──────────┐
+                     │ SQLite  │ │ ChromaDB   │
+                     │ 2,500+  │ │ 벡터 검색   │
+                     │ 시설    │ │ (임베딩)    │
+                     └─────────┘ └────────────┘
 ```
 
 **데이터 흐름**
 1. `POST /api/sync` → 서울 공공데이터 + 한국관광공사 API에서 시설·이미지 수집 → SQLite 저장
 2. Frontend → `/api/places`, `/api/facilities` 등 REST 요청 → DB 조회 후 JSON 응답
-3. `/api/recommend` → DB에서 자치구 통계 + 장소 조회 → OpenAI에 프롬프트 전달 → 코스 텍스트 반환
-4. `/api/clusters` → scikit-learn K-means 실행 → 군집 라벨 + 대표 카테고리 반환
+3. `/api/chat` (POST) → LangGraph 에이전트: 의도 분류 → DB/벡터 검색 → 응답 생성
+4. `/api/chat/stream` (POST, SSE) → 위와 동일한 파이프라인, 토큰 단위 스트리밍 응답
+5. `/api/recommend` → DB에서 자치구 통계 + 장소 조회 → OpenAI 프롬프트 → 코스 텍스트 반환 (레거시)
+6. `/api/clusters` → scikit-learn K-means 실행 → 군집 라벨 + 대표 카테고리 반환
 
 ---
 
@@ -226,7 +259,7 @@ cp .env.example .env
 |------|------|------|
 | `SEOUL_DATA_API_KEY` | O | 서울 열린데이터광장 API 키 |
 | `TOUR_API_KEY` | O | 한국관광공사 Tour API 키 |
-| `OPENAI_API_KEY` | 선택 | AI 코스 추천용 (없으면 fallback) |
+| `OPENAI_API_KEY` | 선택 | AI 대화형 가이드 + 코스 추천용 (없으면 fallback) |
 
 ### Backend
 
@@ -237,6 +270,8 @@ venv/Scripts/activate   # Windows
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8003
 ```
+
+> 첫 실행 시 ChromaDB 임베딩 모델 다운로드로 30~60초 소요됩니다. 이후 실행은 캐시되어 빠릅니다.
 
 ### Frontend
 
@@ -270,7 +305,12 @@ FastAPI 자동 문서: `http://localhost:8003/docs`
 | GET | `/api/subway` | 전체 지하철역 |
 | GET | `/api/subway/nearest?lat=&lng=` | 최근접 역 |
 | GET | `/api/clusters` | K-means 군집분석 결과 |
-| GET | `/api/recommend?district=&lang=` | AI 코스 추천 |
+| GET | `/api/recommend?district=&lang=` | AI 코스 추천 (레거시) |
+| **POST** | **`/api/chat`** | **AI 대화형 가이드 (JSON 응답)** |
+| **POST** | **`/api/chat/stream`** | **AI 대화형 가이드 (SSE 스트리밍)** |
+| GET | `/api/chat/sessions` | 채팅 세션 목록 |
+| GET | `/api/chat/history/{session_id}` | 채팅 이력 조회 |
+| DELETE | `/api/chat/sessions/{session_id}` | 채팅 세션 삭제 |
 | POST | `/api/sync` | 공공데이터 API 수동 동기화 |
 
 </details>
@@ -297,24 +337,33 @@ seoul-culture-map/
 │   │   ├── test_api.py       # API 엔드포인트 테스트
 │   │   └── test_utils.py     # 유틸리티 함수 테스트
 │   └── app/
-│       ├── main.py           # FastAPI 앱 + lifespan
+│       ├── main.py           # FastAPI 앱 + lifespan (ChromaDB 초기화 포함)
 │       ├── config.py         # 환경변수 설정
 │       ├── database.py       # SQLAlchemy 엔진
 │       ├── utils.py          # 공통 유틸리티
+│       ├── agent/            # LangGraph AI 에이전트 (NEW)
+│       │   ├── state.py      # AgentState TypedDict
+│       │   ├── schemas.py    # IntentClassification, AgentResponse
+│       │   ├── nodes.py      # 3개 노드: 의도분류, 데이터검색, 응답생성
+│       │   └── graph.py      # StateGraph 조립 + run_agent / run_agent_stream
 │       ├── models/
 │       │   ├── facility.py   # 자치구별 집계 모델
 │       │   ├── place.py      # 개별 시설 모델 (좌표, 이미지)
-│       │   └── subway.py     # 지하철역 모델
+│       │   ├── subway.py     # 지하철역 모델
+│       │   └── chat.py       # ChatSession, ChatMessage 모델 (NEW)
 │       ├── schemas/
 │       │   └── facility.py   # Pydantic 응답 스키마
 │       ├── services/
 │       │   ├── data_loader.py    # CSV seed
 │       │   ├── clustering.py     # K-means
 │       │   ├── seoul_api.py      # 서울 공공데이터 API
-│       │   └── tour_api.py       # 한국관광공사 API
+│       │   ├── tour_api.py       # 한국관광공사 API
+│       │   ├── retriever.py      # 데이터 조회 서비스 (NEW)
+│       │   └── vectorstore.py    # ChromaDB 벡터 검색 (NEW)
 │       └── routers/
 │           ├── facility.py   # 시설/통계/지하철 라우터
-│           └── recommend.py  # AI 추천 라우터
+│           ├── recommend.py  # AI 추천 라우터 (레거시)
+│           └── chat.py       # AI 대화형 가이드 라우터 (NEW)
 │
 ├── frontend/
 │   ├── package.json
@@ -325,11 +374,13 @@ seoul-culture-map/
 │       ├── constants.js      # 좌표, 카테고리 색상 상수
 │       ├── utils.js          # 공통 유틸리티
 │       ├── api/
-│       │   └── client.js     # API 함수 + mock fallback
+│       │   ├── client.js     # API 함수 + mock fallback
+│       │   └── chat.js       # AI 챗봇 API (스트리밍 포함) (NEW)
 │       ├── hooks/
 │       │   └── useFavorites.js   # 즐겨찾기 (localStorage v2)
 │       ├── components/
-│       │   ├── SeoulMap.jsx      # 메인 지도 (마커, 히트맵, 팝업)
+│       │   ├── SeoulMap.jsx      # 메인 지도 (마커, 히트맵, 팝업, AI 하이라이트)
+│       │   ├── ChatPanel.jsx     # AI 대화형 챗봇 패널 (NEW)
 │       │   ├── CategoryFilter.jsx
 │       │   ├── SubwayFilter.jsx
 │       │   ├── DistrictList.jsx  # 5대 권역 필터
@@ -339,9 +390,9 @@ seoul-culture-map/
 │       │   ├── RangeSlider.jsx
 │       │   ├── FavoritesPanel.jsx
 │       │   ├── TourismTags.jsx   # 관광 태그 컴포넌트
-│       │   └── AiMascot.jsx
+│       │   └── AiMascot.jsx      # AI 마스코트 (ChatPanel 연동)
 │       └── pages/
-│           ├── Dashboard.jsx     # Culture Map 페이지
+│           ├── Dashboard.jsx     # Culture Map 페이지 (AI 지도 연동)
 │           ├── AnalyticsPage.jsx # 4모드 분석 (지도 위)
 │           ├── CoursePage.jsx    # 목적별 코스 추천
 │           └── FavoritesPage.jsx # 즐겨찾기 (지도 + 패널)
@@ -364,6 +415,7 @@ seoul-culture-map/
 - **Leaflet + React 동기화** — Leaflet의 DOM 직접 조작과 React Virtual DOM의 라이프사이클 불일치로 마커·팝업 렌더링 이슈 반복
 - **CSS overflow 충돌** — `overflow-y: auto`가 `overflow-x`도 강제해 드롭다운이 잘리는 문제, `position: fixed`로 우회
 - **프론트-백엔드 필드명 불일치** — `lat`/`lng` vs `latitude`/`longitude` 차이로 전체 마커 미표시 버그 발생
+- **LangGraph 에이전트 설계** — 노드 간 상태 전달, DB 세션 주입, 스트리밍과 비스트리밍 모드 분리 등 아키텍처 결정
 
 ### 배운 점
 
@@ -372,6 +424,7 @@ seoul-culture-map/
 - **지도 시각화 핵심은 정보 밀도 조절** — 2,500+ 마커를 클러스터링·히트맵으로 조절하는 UX 패턴 습득
 - **외부 API 의존성엔 fallback 필수** — mock 데이터, 에러 바운더리 등 방어적 프로그래밍 실전 적용
 - **연산 위치 판단** — 군집분석은 서버(scikit-learn), 거리 계산은 프론트(Haversine)로 분리하는 기준 체득
+- **RAG 파이프라인 실전 적용** — LangGraph 에이전트 + ChromaDB 벡터 검색으로 자연어 질의 → 맞춤 추천 흐름 구현
 
 ### 향후 방향
 

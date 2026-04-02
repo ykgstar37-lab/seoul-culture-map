@@ -273,6 +273,64 @@ function getMarkerColor(total) {
   return "#fcd34d";
 }
 
+function makeNumberIcon(num) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      width:28px;height:28px;border-radius:50%;
+      background:#6366f1;color:white;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:bold;font-size:13px;
+      border:2px solid white;box-shadow:0 2px 8px rgba(99,102,241,0.5);
+      animation:pulse 2s infinite;
+    ">${num}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+}
+
+function HighlightedPlaces({ places, onClear }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (places.length > 0) {
+      const bounds = L.latLngBounds(places.map((p) => [p.lat, p.lng]));
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+    }
+  }, [places, map]);
+
+  if (places.length === 0) return null;
+
+  const polylinePositions = places.map((p) => [p.lat, p.lng]);
+
+  return (
+    <>
+      <Polyline
+        positions={polylinePositions}
+        pathOptions={{ color: "#6366f1", weight: 3, dashArray: "8 6", opacity: 0.7 }}
+      />
+      {places.map((p, i) => (
+        <Marker key={`hl-${p.id}`} position={[p.lat, p.lng]} icon={makeNumberIcon(i + 1)}>
+          <Tooltip direction="top" offset={[0, -16]}>
+            <span className="text-xs font-bold">{p.name}</span>
+            <br />
+            <span className="text-[10px] text-gray-500">{p.category}</span>
+          </Tooltip>
+        </Marker>
+      ))}
+      {/* Clear button */}
+      <div className="leaflet-top leaflet-left" style={{ top: "60px", left: "50%", transform: "translateX(-50%)", position: "absolute", zIndex: 1000 }}>
+        <button
+          onClick={onClear}
+          className="px-3 py-1.5 bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-lg hover:bg-indigo-600 transition-colors"
+        >
+          AI 추천 마커 지우기
+        </button>
+      </div>
+    </>
+  );
+}
+
 export default function SeoulMap({
   districts,
   selectedDistrict,
@@ -287,6 +345,8 @@ export default function SeoulMap({
   selectedLine = null,
   onToggleFavorite,
   isFavorite,
+  highlightedPlaces = [],
+  onClearHighlights,
 }) {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [places, setPlaces] = useState([]);
@@ -457,6 +517,8 @@ export default function SeoulMap({
                 </Marker>
               );
             })}
+        {/* AI recommended place highlights */}
+        <HighlightedPlaces places={highlightedPlaces} onClear={onClearHighlights} />
       </MapContainer>
     </div>
   );
